@@ -1,0 +1,88 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides: esme-gpio26-toggle
+# Required-Start: $remote_fs $time
+# Required-Stop: $remote_fs $time
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 2 6
+# Short-Description: ESME GPIO#26 toggle service
+### END INIT INFO
+
+# --- Configuration ---
+# Le nom du programme que nous gérons (celui que vous avez compilé)
+DAEMON_NAME="esme-gpio-toggle"
+# Le chemin complet vers l'exécutable (installé par 'make install')
+DAEMON_PATH="/usr/bin/${DAEMON_NAME}"
+# Emplacement standard pour le fichier PID
+PIDFILE="/var/run/${DAEMON_NAME}.pid"
+# Le nom de ce script, pour le message d'utilisation
+SCRIPT_NAME=$(basename "$0")
+
+# Vérifier que l'exécutable existe avant de continuer
+test -x $DAEMON_PATH || exit 0
+
+# Fonction pour démarrer le service
+do_start() {
+    echo "Starting service: ${DAEMON_NAME}"
+    # Utiliser start-stop-daemon pour lancer le programme en arrière-plan
+    # et créer le fichier PID.
+    start-stop-daemon --start --quiet --background \
+        --make-pidfile --pidfile $PIDFILE \
+        --exec $DAEMON_PATH
+}
+
+# Fonction pour arrêter le service
+do_stop() {
+    echo "Stopping service: ${DAEMON_NAME}"
+    # Utiliser start-stop-daemon pour arrêter le programme
+    # en se basant sur le fichier PID.
+    start-stop-daemon --stop --quiet --pidfile $PIDFILE
+    # Nettoyer le fichier PID au cas où le démon ne l'aurait pas fait
+    rm -f $PIDFILE
+}
+
+# Fonction pour afficher le statut
+do_status() {
+    # Vérifier le statut en utilisant le fichier PID
+    start-stop-daemon --status --pidfile $PIDFILE
+    RETVAL=$? # Récupère le code de retour (0 = running)
+
+    if [ $RETVAL -eq 0 ]; then
+        # Le service tourne, lire le PID dans le fichier
+        PID=$(cat $PIDFILE)
+        # Afficher le message de statut exact demandé
+        echo "Status of esme-gpio-toggle for GPIO#26: running with PID=$PID"
+    else
+        # Le service est arrêté
+        echo "Status of esme-gpio-toggle for GPIO#26: stopped"
+    fi
+}
+
+# --- Logique Principale ---
+# Analyser le premier argument ($1)
+case "$1" in
+    start)
+        do_start
+        ;;
+    stop)
+        do_stop
+        ;;
+    restart)
+        # Le 'restart' est simplement un 'stop' suivi d'un 'start'
+        echo "Restarting service: ${DAEMON_NAME}"
+        do_stop
+        sleep 1
+        do_start
+        ;;
+    status)
+        do_status
+        ;;
+    *)
+        # Tout autre argument: afficher le message d'utilisation
+        echo "Usage : ${SCRIPT_NAME} (start | stop | restart | status )"
+        exit 1
+        ;;
+esac
+
+exit 0
