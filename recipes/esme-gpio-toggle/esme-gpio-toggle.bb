@@ -1,56 +1,53 @@
 # Métadonnées de la recette
 SUMMARY = "Application de bascule GPIO pour ESME-3S10"
-HOMEPAGE = ""
+HOMEPAGE = "https://github.com/asaph-avanet/esme-gpio-toggle-A3S10"
 SECTION = "base"
 
-# Version de l'application
+# Version
 PV = "1.0"
 PR = "r0"
 
-# Licence (détectée à partir de COPYING.MIT dans le dossier source)
+# Licence (Il est préférable d'avoir un fichier LICENSE dans votre dépôt)
+# Si vous n'en avez pas, mettez LICENSE = "CLOSED" et commentez LIC_FILES_CHKSUM
 LICENSE = "MIT"
+# Adaptez le chemin si votre fichier de licence a un autre nom ou hash
 LIC_FILES_CHKSUM = "file://COPYING.MIT;md5=3912d958d00bac4a6b550f75d7c806bb"
 
-# --- Dépendances et Héritage (Exigences du TP) ---
-
-# On n'utilise PAS 'inherit make' pour éviter le conflit de parsing.
-# On utilise 'pkgconfig' pour préparer l'environnement de cross-compilation.
+# --- Dépendances ---
 inherit pkgconfig
-
 DEPENDS = "libgpiod (< 2.0)"
 
-SRC_URI = "git:////home/asaph/w/src/esme-3S10-gpio-toggle;protocol=file;branch=master"
+# --- Source URI (Mode Git Distant) ---
+# URL de votre dépôt GitHub
+# protocol=https : Pour utiliser le port 443 (souvent moins bloqué)
+# branch=main : La branche par défaut sur GitHub est souvent 'main' maintenant
+SRC_URI = "git://github.com/asaph-avanet/esme-gpio-toggle-A3S10.git;protocol=https;branch=main"
 
-# Indiquer à Yocto d'utiliser la dernière révision du dépôt (HEAD)
+# Révision : Utilise le dernier commit de la branche spécifiée
 SRCREV = "${AUTOREV}"
+
+# Dossier Source (S)
+# BitBake clone le dépôt dans ${WORKDIR}/git
 S = "${WORKDIR}/git"
-# 1. Héritage de la classe update-rc.d
+
+# --- Script d'init ---
 inherit update-rc.d
-
-# 2. Définition du package qui contient le script (par défaut ${PN})
 INITSCRIPT_PACKAGES = "${PN}"
-
-# 3. Nom du script dans /etc/init.d/ (DOIT correspondre au fichier installé par le Makefile)
 INITSCRIPT_NAME:${PN} = "esme-gpio26-toggle"
-
-# 4. Paramètres par défaut (Start/Stop levels)
 INITSCRIPT_PARAMS:${PN} = "defaults"
 
-# --- Tâches Manuelles (do_compile / do_install) ---
+# --- Tâches Manuelles ---
 
-# Tâche de Compilation : Lance 'make' dans le répertoire source (${S}).
 do_compile() {
-    oe_runmake
+    # On force make à s'exécuter dans le dossier cloné
+    oe_runmake -C ${S}
 }
 
-# Tâche d'Installation :
-# Surcharge l'INSTALL_DIR de votre Makefile (${D} est le répertoire de destination Yocto).
 do_install() {
-    # 1. Installe le binaire (en surchargeant la destination dans le Makefile)
-    oe_runmake install INSTALL_DIR=${D}
+    # Installation avec surcharge du dossier de destination
+    oe_runmake install INSTALL_DIR=${D} -C ${S}
     
-    # 2. Installe le script de démarrage (manuellement, car il ne fait pas partie du 'make install' standard)
-    # L'installation se fait dans le dossier standard des services init.d
+    # Installation manuelle du script d'init
     install -d ${D}${sysconfdir}/init.d
     install -m 0755 ${S}/esme-gpio26-toggle ${D}${sysconfdir}/init.d/esme-gpio26-toggle
 }
